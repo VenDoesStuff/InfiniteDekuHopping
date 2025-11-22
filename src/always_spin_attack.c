@@ -16,5 +16,3 @@ RECOMP_PATCH s32 Player_CanSpinAttack(Player* this) {
     // Always spin attack.
     return true;
 }
-
-
