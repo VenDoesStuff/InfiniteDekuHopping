@@ -23,6 +23,30 @@ RECOMP_HOOK ("func_808373F8") void InfiniteHops(PlayState* play, Player* this, u
     
 }
 
+Player* gPlayer;
+// Allows Player to use floor switches as Deku.
+RECOMP_HOOK ("Player_Init") void SavePlayerForDekuSwitches(Actor* thisx, PlayState* play) {
+    gPlayer = (Player*)thisx;
+}
+
+RECOMP_HOOK_RETURN ("Player_Init") void DekuSwitches() {
+    if (gPlayer->transformation == PLAYER_FORM_DEKU) {
+        gPlayer->actor.flags |= ACTOR_FLAG_CAN_PRESS_SWITCHES;
+    }
+}
+
+#include "overlays/actors/ovl_En_Torch2/z_en_torch2.h"
+// The same as above, but for the deku elegy statue.
+RECOMP_HOOK ("EnTorch2_Init") void ElegySwitches(Actor* thisx, PlayState* play) {
+    EnTorch2* this = (EnTorch2*)thisx;
+    
+    if (this->actor.params == TORCH2_PARAM_DEKU) {
+        this->actor.flags |= ACTOR_FLAG_CAN_PRESS_SWITCHES;
+    }
+}
+
+
+
 void func_80834140(PlayState* play, Player* this, PlayerAnimationHeader* anim);
 void func_808345C8(void);
 void func_8083B8D0(PlayState* play, Player* this);
@@ -51,79 +75,79 @@ void Player_Action_56(Player* this, PlayState* play);
 
 extern PlayerAnimationHeader gPlayerAnim_link_swimer_swim_down;
 
-RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
-    f32 sp1C = this->actor.depthInWater - this->ageProperties->unk_2C;
+// RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
+//     f32 sp1C = this->actor.depthInWater - this->ageProperties->unk_2C;
 
-    if (sp1C < 0.0f) {
-        this->underwaterTimer = 0;
-        if ((this->transformation == PLAYER_FORM_ZORA) && (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) {
-            this->currentBoots = PLAYER_BOOTS_ZORA_LAND;
-        }
-        Audio_SetBaseFilter(0);
-    } else {
-        Audio_SetBaseFilter(0x20);
-        if ((this->transformation == PLAYER_FORM_ZORA) || (sp1C < 10.0f)) {
-            this->underwaterTimer = 0;
-        } else if (this->underwaterTimer < 300) {
-            this->underwaterTimer++;
-        }
-    }
+//     if (sp1C < 0.0f) {
+//         this->underwaterTimer = 0;
+//         if ((this->transformation == PLAYER_FORM_ZORA) && (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) {
+//             this->currentBoots = PLAYER_BOOTS_ZORA_LAND;
+//         }
+//         Audio_SetBaseFilter(0);
+//     } else {
+//         Audio_SetBaseFilter(0x20);
+//         if ((this->transformation == PLAYER_FORM_ZORA) || (sp1C < 10.0f)) {
+//             this->underwaterTimer = 0;
+//         } else if (this->underwaterTimer < 300) {
+//             this->underwaterTimer++;
+//         }
+//     }
 
-    if ((this->actor.parent == NULL) && (Player_Action_33 != this->actionFunc) &&
-        (Player_Action_49 != this->actionFunc) &&
-        ((Player_Action_28 != this->actionFunc) || (this->actor.velocity.y < -2.0f))) {
-        if (this->ageProperties->unk_2C < this->actor.depthInWater) {
-            if (this->transformation == PLAYER_FORM_GORON) {
-                // # 80834140 is the (a?) death function
-                // func_80834140(play, this, &gPlayerAnim_link_swimer_swim_down);
-                // Stuff about Deku mask, can be used to make deku void out while goron
-                // func_808345C8();
-                // func_8083B8D0(play, this);
-            } else if (this->transformation == PLAYER_FORM_DEKU) {
-                // If hops arent zero, point to the hopping function. (Still hops if commented out.)
-                // if (this->remainingHopsCounter != 0) {
-                //     func_808373F8(play, this, NA_SE_VO_LI_AUTO_JUMP);
-                // } else {
-                    if ((play->sceneId == SCENE_20SICHITAI) && (this->unk_3CF == 0)) {
-                        if (CHECK_EVENTINF(EVENTINF_50)) {
-                            play->nextEntrance = ENTRANCE(TOURIST_INFORMATION, 2);
-                        } else {
-                            play->nextEntrance = ENTRANCE(TOURIST_INFORMATION, 1);
-                        }
-                //         // play->transitionTrigger = TRANS_TRIGGER_START;
-                //         // play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
-                //         // this->stateFlags1 |= PLAYER_STATE1_200;
-                //         // Audio_PlaySfx(NA_SE_SY_DEKUNUTS_JUMP_FAILED);
-                    } else if ((this->unk_3CF == 0) &&
-                               ((play->sceneId == SCENE_30GYOSON) || (play->sceneId == SCENE_31MISAKI) ||
-                                (play->sceneId == SCENE_TORIDE))) {
-                        // func_80169EFC(play);
-                        // func_808345C8();
-                //     } else {
-                //         Player_SetAction(play, this, Player_Action_1, 0);
-                //         this->stateFlags1 |= PLAYER_STATE1_20000000;
-                //     }
-                // 8083B8D0 points to the splash SFX when calling into water.
-                //     func_8083B8D0(play, this);
-                }
-            } else if (!(this->stateFlags1 & PLAYER_STATE1_8000000) ||
-                       (((this->currentBoots < PLAYER_BOOTS_ZORA_UNDERWATER) ||
-                         !(this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) &&
-                        (Player_Action_43 != this->actionFunc) && (Player_Action_61 != this->actionFunc) &&
-                        (Player_Action_62 != this->actionFunc) && (Player_Action_54 != this->actionFunc) &&
-                        (Player_Action_57 != this->actionFunc) && (Player_Action_58 != this->actionFunc) &&
-                        (Player_Action_59 != this->actionFunc) && (Player_Action_60 != this->actionFunc) &&
-                        (Player_Action_55 != this->actionFunc) && (Player_Action_56 != this->actionFunc))) {
-                func_8083B930(play, this);
-            }
-        } else if ((this->stateFlags1 & PLAYER_STATE1_8000000) &&
-                   (this->actor.depthInWater < this->ageProperties->unk_24) &&
-                   (((Player_Action_56 != this->actionFunc) && !(this->stateFlags3 & PLAYER_STATE3_8000)) ||
-                    (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND))) {
-            if (this->skelAnime.movementFlags == 0) {
-                Player_SetupTurnInPlace(play, this, this->actor.shape.rot.y);
-            }
-            func_8083B32C(play, this, this->actor.velocity.y);
-        }
-    }
-}
+//     if ((this->actor.parent == NULL) && (Player_Action_33 != this->actionFunc) &&
+//         (Player_Action_49 != this->actionFunc) &&
+//         ((Player_Action_28 != this->actionFunc) || (this->actor.velocity.y < -2.0f))) {
+//         if (this->ageProperties->unk_2C < this->actor.depthInWater) {
+//             if (this->transformation == PLAYER_FORM_GORON) {
+//                 // # Death Function.
+//                 func_80834140(play, this, &gPlayerAnim_link_swimer_swim_down);
+//                 // # Checks for Deku Mask, and allows Link to spawn as Human if you have it & assumedly die.
+//                 func_808345C8();
+//                 func_8083B8D0(play, this);
+//             } else if (this->transformation == PLAYER_FORM_DEKU) {
+//                 // # If hops not zero, go to Deku Hopping function.
+//                 if (this->remainingHopsCounter != 0) {
+//                     this->stateFlags1 = PLAYER_STATE1_8000000;;
+//                 } else {
+//                     if ((play->sceneId == SCENE_20SICHITAI) && (this->unk_3CF == 0)) {
+//                         if (CHECK_EVENTINF(EVENTINF_50)) {
+//                             play->nextEntrance = ENTRANCE(TOURIST_INFORMATION, 2);
+//                         } else {
+//                             play->nextEntrance = ENTRANCE(TOURIST_INFORMATION, 1);
+//                         }
+//                         // play->transitionTrigger = TRANS_TRIGGER_START;
+//                         // play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+//                         // this->stateFlags1 |= PLAYER_STATE1_200;
+//                         // Audio_PlaySfx(NA_SE_SY_DEKUNUTS_JUMP_FAILED);
+//                     // } else if ((this->unk_3CF == 0) &&
+//                     //            ((play->sceneId == SCENE_30GYOSON) || (play->sceneId == SCENE_31MISAKI) ||
+//                     //             (play->sceneId == SCENE_TORIDE))) {
+//                         // func_80169EFC(play);
+//                         // func_808345C8();
+//                     // } else {
+//                     //     Player_SetAction(play, this, Player_Action_1, 0);
+//                     //     this->stateFlags1 |= PLAYER_STATE1_20000000;
+//                     // }
+//                     // func_8083B8D0(play, this);
+//                 }
+//             } //else if (!(this->stateFlags1 & PLAYER_STATE1_8000000) ||
+//         //                (((this->currentBoots < PLAYER_BOOTS_ZORA_UNDERWATER) ||
+//         //                  !(this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) &&
+//         //                 (Player_Action_43 != this->actionFunc) && (Player_Action_61 != this->actionFunc) &&
+//         //                 (Player_Action_62 != this->actionFunc) && (Player_Action_54 != this->actionFunc) &&
+//         //                 (Player_Action_57 != this->actionFunc) && (Player_Action_58 != this->actionFunc) &&
+//         //                 (Player_Action_59 != this->actionFunc) && (Player_Action_60 != this->actionFunc) &&
+//         //                 (Player_Action_55 != this->actionFunc) && (Player_Action_56 != this->actionFunc))) {
+//         //         func_8083B930(play, this);
+//         //     }
+//         // } else if ((this->stateFlags1 & PLAYER_STATE1_8000000) &&
+//         //            (this->actor.depthInWater < this->ageProperties->unk_24) &&
+//         //            (((Player_Action_56 != this->actionFunc) && !(this->stateFlags3 & PLAYER_STATE3_8000)) ||
+//         //             (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND))) {
+//         //     if (this->skelAnime.movementFlags == 0) {
+//         //         Player_SetupTurnInPlace(play, this, this->actor.shape.rot.y);
+//         //     }
+//         //     func_8083B32C(play, this, this->actor.velocity.y);
+//         }
+//     }
+// }
+// }
