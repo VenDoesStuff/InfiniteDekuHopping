@@ -4,21 +4,26 @@
 #include "recompconfig.h"
 #include "z64player.h"
 
-extern FloorType sPlayerFloorType;
+// TODO LIST:
+// Make the A button say 'Dive' when swimming.
+// Fix Dekus speed when Diving.
+// Fix Deku instantly starting to hop again after landing in Poison Water.
+// Fix Dekus dive timer so that he cant dive forever.
+// Try to prevent Deku from hopping after diving (optional)
 
 RECOMP_HOOK ("func_808373F8") void InfiniteHops(PlayState* play, Player* this, u16 sfxId) {
     f32 speed;
     f32 speedXZ;
     
-    // // Make it so holding A stops hops counter from decreasing by raising it
-    // if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->cur.button, BTN_A)){
-    //     this->remainingHopsCounter++;
-    // }
-    // if (this->remainingHopsCounter > 5){
-    //     this->remainingHopsCounter = 5;
-    // }
+    // Make it so holding A stops hops counter from decreasing by raising it
+    if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->cur.button, BTN_A)){
+        this->remainingHopsCounter++;
+    }
+    if (this->remainingHopsCounter > 5){
+        this->remainingHopsCounter = 5;
+    }
 
-    //Raise minimum hopping speed
+    // Raise minimum hopping speed
     if (this->speedXZ < 8.0f) {
         this->speedXZ = 8.0f;
     }
@@ -29,7 +34,6 @@ Player* gPlayer;
 // Allows Player to use floor switches as Deku.
 RECOMP_HOOK ("Player_Init") void SavePlayerForDekuSwitches(Actor* thisx, PlayState* play) {
     gPlayer = (Player*)thisx;
-    recomp_printf("floor type %d\n", sPlayerFloorType);
 }
 
 RECOMP_HOOK_RETURN ("Player_Init") void DekuSwitches(PlayState* play, Player* this, u16 sfxId) {
@@ -120,34 +124,6 @@ extern PlayerAnimationHeader gPlayerAnim_link_normal_100step_up;
 extern PlayerAnimationHeader gPlayerAnim_link_swimer_wait2swim_wait;
 extern PlayerAnimationHeader gPlayerAnim_link_swimer_land2swim_wait;
 
-// RECOMP_HOOK ("Player_Action_25") void Player_Action_25print(Player* this, PlayState* play) {
-//     recomp_printf("PA25\n");
-// }
-
-// RECOMP_HOOK ("Player_Action_27") void Player_Action_27print(Player* this, PlayState* play) {
-//     recomp_printf("PA27\n");
-// }
-
-// RECOMP_HOOK ("Player_Action_28") void Player_Action_28print(Player* this, PlayState* play) {
-//     recomp_printf("PA28\n");
-// }
-
-// RECOMP_HOOK ("Player_Action_82") void Player_Action_82print(Player* this, PlayState* play) {
-//     recomp_printf("PA82\n");
-// }
-
-// RECOMP_HOOK ("Player_Action_83") void Player_Action_83print(Player* this, PlayState* play) {
-//     recomp_printf("PA83\n");
-// }
-
-// RECOMP_HOOK ("Player_Action_96") void Player_Action_96print(Player* this, PlayState* play) {
-//     recomp_printf("PA96\n");
-// }
-
-// RECOMP_HOOK ("Player_Action_54") void Player_Action_54print(Player* this, PlayState* play) {
-//     recomp_printf("PA54 god i hope im swimming rn\n");
-// }
-
 typedef struct {
     /* 0x0 */ PlayerAnimationHeader* unk_0;
     /* 0x4 */ PlayerAnimationHeader* unk_4;
@@ -156,8 +132,6 @@ typedef struct {
 
 extern struct_8085C2A4 D_8085C2A4[];
 
-// Big thing related to Deku / Goron Voiding in water. Patched currently in a way that prevents Deku from voiding if hops reach 0.
-// where the FUCK is the function preventing him from swimming when entering water?????
 RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
     f32 sp1C = this->actor.depthInWater - this->ageProperties->unk_2C;
 
@@ -181,13 +155,10 @@ RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
         ((Player_Action_28 != this->actionFunc) || (this->actor.velocity.y < -2.0f))) {
         if (this->ageProperties->unk_2C < this->actor.depthInWater) {
             if (this->transformation == PLAYER_FORM_GORON) {
-                // # Death Function.
                 func_80834140(play, this, &gPlayerAnim_link_swimer_swim_down);
-                // # Checks for Deku Mask, and allows Link to spawn as Human if you have it & assumedly die.
                 func_808345C8();
                 func_8083B8D0(play, this);
             } else if (this->transformation == PLAYER_FORM_DEKU) {
-                // # If hops not zero, go to Deku Hopping function.
                 if (this->remainingHopsCounter != 0) {
                     func_808373F8(play, this, NA_SE_VO_LI_AUTO_JUMP);} 
                     else {
@@ -217,7 +188,7 @@ RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
                                       (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)
                                           ? &gPlayerAnim_link_swimer_wait2swim_wait
                                           : &gPlayerAnim_link_swimer_land2swim_wait);
-                        (this->stateFlags1 = PLAYER_STATE1_8000000);
+                        (this->stateFlags1 |= PLAYER_STATE1_8000000);
                     }
                 }
             } else if (!(this->stateFlags1 & PLAYER_STATE1_8000000) ||
@@ -242,7 +213,8 @@ RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
     }
 }
 
-//# Patches this function to only start the hops if A is held. Others needed too.
+// Patches this function to only start if A is held. Points to hopping function.
+// Having this fixes Dekus controls when Swimming. Dont ask me how.
 
 RECOMP_PATCH s32 func_80850854(PlayState* play, Player* this) {
 
@@ -254,16 +226,14 @@ RECOMP_PATCH s32 func_80850854(PlayState* play, Player* this) {
     }
     return false;
 }
-// Main function that handles hopping. When this is prevented, Deku can swim IF spawning in the swimming state. Going into water normally breaks.
+// Main function that handles hopping.
 
-// Patched to check if A is pressed before starting the hopping function proper.
+// Patched to check if Deku is Swimming before starting the hopping function proper.
 RECOMP_PATCH s32 func_808373F8(PlayState* play, Player* this, u16 sfxId) {
 
     PlayerAnimationHeader* anim;
     f32 speed;
     s16 yawDiff = this->yaw - this->actor.shape.rot.y;
-
-    // not having the stuff below here, until the deku hopping part, crashes if you try to hop.
 
 if (this->stateFlags1 != PLAYER_STATE1_8000000) {
 
@@ -303,7 +273,6 @@ if (this->stateFlags1 != PLAYER_STATE1_8000000) {
 
     // Deku hopping
 
-if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->cur.button, BTN_A)) {
     if (this->transformation == PLAYER_FORM_DEKU) {
         speed *= 0.3f + ((5 - this->remainingHopsCounter) * 0.18f);
         if (speed < 4.0f) {
@@ -337,105 +306,4 @@ if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->cur.button, BTN_A)) {
 
     return true;
 }
-}
-}
-// Potential Breakthrough function. Commenting this out and building breaks falling & climbing, but allows deku to VERY BROKENLY enter water and swim 
-RECOMP_PATCH void func_8083827C(Player* this, PlayState* play) {
-    s32 temp_t0; // sp64
-    CollisionPoly* sp60;
-    s32 sp5C;
-    WaterBox* waterBox;
-    Vec3f sp4C;
-    f32 sp48;
-    f32 sp44;
-    // Landing from Falling animation?
-    this->fallDistance = this->fallStartHeight - (s32)this->actor.world.pos.y;
-    if (!(this->stateFlags1 & (PLAYER_STATE1_8000000 | PLAYER_STATE1_20000000)) &&
-        ((this->stateFlags1 & PLAYER_STATE1_80000000) ||
-         !(this->stateFlags3 & (PLAYER_STATE3_200 | PLAYER_STATE3_2000))) &&
-        !(this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)) {
-        if (func_80835428(play, this)) {
-            return;
-        }
-
-        if (sPrevFloorProperty == FLOOR_PROPERTY_8) {
-            this->actor.world.pos.x = this->actor.prevPos.x;
-            this->actor.world.pos.z = this->actor.prevPos.z;
-            return;
-        }
-
-        if ((this->stateFlags3 & PLAYER_STATE3_2) || (this->skelAnime.movementFlags & ANIM_FLAG_80)) {
-            return;
-        }
-        // 25 = Falling Normally
-        // 27 = Diving (as in jumping down w/ the dive anim, not swimming and hitting A)
-        // 28 = Jumping out of Water as Zora
-        // 96 = Goron Rolling
-        // 82 = Being frozen in Ice (what)
-        // 83 = Being electrically shocked (Couldnt get to trigger, found next to 82 with "Player_Anim_PlayLoopAdjusted(play, this, &gPlayerAnim_link_normal_electric_shock);"
-
-        if ((Player_Action_25 == this->actionFunc) || (Player_Action_27 == this->actionFunc) ||
-            (Player_Action_28 == this->actionFunc) || (Player_Action_96 == this->actionFunc) ||
-            (Player_Action_82 == this->actionFunc) || (Player_Action_83 == this->actionFunc)) {
-            return;
-        }
-
-        if ((sPrevFloorProperty == FLOOR_PROPERTY_7) || (this->meleeWeaponState != PLAYER_MELEE_WEAPON_STATE_0) ||
-            ((this->skelAnime.movementFlags & ANIM_FLAG_ENABLE_MOVEMENT) && func_808381F8(play, this))) {
-            Math_Vec3f_Copy(&this->actor.world.pos, &this->actor.prevPos);
-            if (this->speedXZ > 0.0f) {
-                Player_StopHorizontalMovement(this);
-            }
-            this->actor.bgCheckFlags |= BGCHECKFLAG_GROUND_TOUCH;
-            return;
-        }
-
-        temp_t0 = BINANG_SUB(this->yaw, this->actor.shape.rot.y);
-        Player_SetAction(play, this, Player_Action_25, 1);
-        func_8082DD2C(play, this);
-
-        // Jumping off Ledges?
-        this->floorSfxOffset = this->prevFloorSfxOffset;
-        if ((this->transformation != PLAYER_FORM_GORON) &&
-            ((this->transformation != PLAYER_FORM_DEKU) || (this->remainingHopsCounter != 0)) &&
-            (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND_LEAVE)) {
-            if (!(this->stateFlags1 & PLAYER_STATE1_8000000)) {
-                if ((sPrevFloorProperty != FLOOR_PROPERTY_6) && (sPrevFloorProperty != FLOOR_PROPERTY_9) &&
-                    (sPlayerYDistToFloor > 20.0f) && (this->meleeWeaponState == PLAYER_MELEE_WEAPON_STATE_0)) {
-                    if ((ABS_ALT(temp_t0) < 0x2000) && (this->speedXZ > 3.0f)) {
-                        if (!(this->stateFlags1 & PLAYER_STATE1_CARRYING_ACTOR)) {
-                            if (((this->transformation == PLAYER_FORM_ZORA) &&
-                                 CHECK_BTN_ALL(sPlayerControlInput->cur.button, BTN_A)) ||
-                                ((sPrevFloorProperty == FLOOR_PROPERTY_11) &&
-                                 (this->transformation != PLAYER_FORM_GORON) &&
-                                 (this->transformation != PLAYER_FORM_DEKU))) {
-
-                                sp48 = func_80835CD8(play, this, &D_8085D154, &sp4C, &sp60, &sp5C);
-                                sp44 = this->actor.world.pos.y;
-
-                                if (WaterBox_GetSurface1(play, &play->colCtx, sp4C.x, sp4C.z, &sp44, &waterBox) &&
-                                    ((sp44 - sp48) > 50.0f)) {
-                                    func_80834DB8(this, &gPlayerAnim_link_normal_run_jump_water_fall, 6.0f, play);
-                                    Player_SetAction(play, this, Player_Action_27, 0);
-                                    return;
-                                }
-                            }
-                        }
-                        func_808373F8(play, this, NA_SE_VO_LI_AUTO_JUMP);
-                        return;
-                    }
-                }
-            }
-        }
-
-        // Checking if the ledge is tall enough for Player to hang from
-         // Top part breaks jumps and falls. Bottom Part breaks Deku's ability to enter water and bugs his animations (WITH THE SWIMMING THING I DID EARLIER)
-        if ((sPrevFloorProperty == FLOOR_PROPERTY_9) || (sPlayerYDistToFloor <= this->ageProperties->unk_34) ||
-            !func_80837DEC(this, play)) {
-            Player_Anim_PlayLoop(play, this, &gPlayerAnim_link_normal_landing_wait);
-        }
-    } else {
-        this->fallStartHeight = this->actor.world.pos.y;
-        this->remainingHopsCounter = 5;
-    }
 }
