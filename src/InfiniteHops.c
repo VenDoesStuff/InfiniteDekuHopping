@@ -217,7 +217,7 @@ RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
                                       (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)
                                           ? &gPlayerAnim_link_swimer_wait2swim_wait
                                           : &gPlayerAnim_link_swimer_land2swim_wait);
-                        (this->stateFlags1 & PLAYER_STATE1_8000000);
+                        (this->stateFlags1 = PLAYER_STATE1_8000000);
                     }
                 }
             } else if (!(this->stateFlags1 & PLAYER_STATE1_8000000) ||
@@ -264,6 +264,8 @@ RECOMP_PATCH s32 func_808373F8(PlayState* play, Player* this, u16 sfxId) {
     s16 yawDiff = this->yaw - this->actor.shape.rot.y;
 
     // not having the stuff below here, until the deku hopping part, crashes if you try to hop.
+
+if (this->stateFlags1 != PLAYER_STATE1_8000000) {
 
     if ((IREG(66) / 100.0f) < this->speedXZ) {
         speed = IREG(67) / 100.0f;
@@ -334,6 +336,7 @@ if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->cur.button, BTN_A)) {
     this->av2.actionVar2 = 1;
 
     return true;
+}
 }
 }
 // Potential Breakthrough function. Commenting this out and building breaks falling & climbing, but allows deku to VERY BROKENLY enter water and swim 
