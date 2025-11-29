@@ -314,7 +314,3 @@ RECOMP_PATCH s32 func_808373F8(PlayState* play, Player* this, u16 sfxId) {
         return true;
     }
 }
-
-RECOMP_PATCH void Player_Action_60(Player* this, PlayState* play) {
-    
-}
