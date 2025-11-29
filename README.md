@@ -4,7 +4,7 @@ This is a mod for Majora's Mask: Recompiled, that tweaks Deku form in a few ways
 
 Changes include:
 
-- Infinite hopping on Water by holding Z.
+- Infinite hopping on Water by holding A.
 
 - Swimming when landing in water after using all deku hops.
     (This is toggleable for people who wish to void instead)
