@@ -48,6 +48,11 @@ RECOMP_HOOK ("EnTorch2_Init") void ElegySwitches(Actor* thisx, PlayState* play) 
     }
 }
 
+enum config_options_swimming {
+    CONFIG_TRUE,
+    CONFIG_FALSE,
+};
+
 // Start of swimming hell.
 
 void func_80834140(PlayState* play, Player* this, PlayerAnimationHeader* anim);
@@ -186,8 +191,9 @@ RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
                     //     Player_SetAction(play, this, Player_Action_1, 0);
                     //     this->stateFlags1 |= PLAYER_STATE1_20000000;
                     // }
-                    func_8083B8D0(play, this);
+                if (recomp_get_config_u32("Allow_Deku_Swim") == CONFIG_TRUE) {
                     if ((this->actor.depthInWater - this->ageProperties->unk_2C)) {
+                        func_8083B8D0(play, this);
                         (this->invincibilityTimer = 10);
                         Player_SetAction(play, this, Player_Action_54, 0);
                         Player_Anim_PlayOnceMorph(play, this,
@@ -198,6 +204,12 @@ RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
                         (this->stateFlags1 |= PLAYER_STATE1_8000000);
                     }
 
+                } else {
+                        func_808345C8();
+                        Player_SetAction(play, this, Player_Action_1, 0);
+                        this->stateFlags1 |= PLAYER_STATE1_20000000;
+                        func_8083B8D0(play, this);
+                    }  
                 }
             } else if (!(this->stateFlags1 & PLAYER_STATE1_8000000) ||
                         (((this->currentBoots < PLAYER_BOOTS_ZORA_UNDERWATER) ||

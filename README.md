@@ -1,7 +1,14 @@
-# Infinite Deku Hopping
+# Ventus' Deku Tweaks
 
-This is a mod for Majora's Mask: Recompiled, that allows the player to skip over water indefinitely as long as the A button is held.
+This is a mod for Majora's Mask: Recompiled, that tweaks Deku form in a few ways to make it more appealing to use.
 
-Make like a rock, and skip, deku boy.
+Changes include:
+
+- Infinite hopping on Water by holding Z.
+
+- Swimming when landing in water after using all deku hops.
+    (This is toggleable for people who wish to void instead)
+
+- Being able to use floor switches as Deku, and hold them down with its Elegy Statue.
 
 Made using the Majora's Mask: Recompiled Mod Template.
