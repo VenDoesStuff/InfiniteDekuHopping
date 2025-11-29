@@ -1,4 +1,4 @@
-# Infinite Deku Hopping
+# Ventus' Deku Tweaks
 
 This is a mod for Majora's Mask: Recompiled, that tweaks Deku form in a few ways to make it more appealing to use.
 
